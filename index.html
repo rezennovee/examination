@@ -43,7 +43,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC"
 .btn { padding: 10px 24px; border: none; border-radius: 6px; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; }
 .btn-blue { background: #1a73e8; color: #fff; }
 .btn-blue:hover { background: #1557b0; }
-.btn-blue:disabled { background: #ccc; cursor: not-allowed; }
 .btn-orange { background: #e65100; color: #fff; }
 .btn-orange:hover { background: #bf360c; }
 .btn-outline { background: #fff; color: #1a73e8; border: 2px solid #1a73e8; }
@@ -60,24 +59,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC"
 .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
 .empty-state p { font-size: 0.95rem; }
 
-/* Tree Builder */
-.tree-area { position: relative; text-align: center; margin: 12px 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.tree-area svg { max-width: 100%; height: auto; min-height: 200px; }
-.tree-slot { cursor: pointer; transition: all 0.2s; pointer-events: all; }
-.tree-slot circle, .tree-slot text { pointer-events: none; }
-.tree-slot:hover { filter: brightness(0.9); }
-.tree-slot.selected circle { stroke: #e65100; stroke-width: 3; fill: #fff3e0; }
-.tree-slot.filled circle { fill: #e8f0fe; stroke-width: 2.5; }
-.tree-slot.correct-slot circle { fill: #e6f4ec; stroke: #0d904f; stroke-width: 3; }
-.tree-slot.wrong-slot circle { fill: #fce8e6; stroke: #d93025; stroke-width: 3; }
+/* Canvas Tree */
+.tree-area { position: relative; text-align: center; margin: 12px 0; }
+.tree-area canvas { max-width: 100%; height: auto; border-radius: 4px; cursor: pointer; display: block; margin: 0 auto; }
 .palette { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; justify-content: center; }
 .palette-chip { padding: 8px 16px; border: 2px solid #1a73e8; border-radius: 20px; background: #fff; color: #1a73e8; font-size: 0.9rem; cursor: pointer; user-select: none; transition: all 0.15s; font-weight: 500; }
-.palette-chip:hover { background: #e8f0fe; transform: scale(1.05); }
+.palette-chip:active { transform: scale(0.95); }
 .palette-chip.used { opacity: 0.3; pointer-events: none; border-color: #ccc; color: #ccc; }
 .palette-chip.highlight { background: #fff3e0; border-color: #e65100; color: #e65100; animation: pulse 0.6s infinite alternate; }
 @keyframes pulse { from { box-shadow: 0 0 0 0 rgba(230,81,0,0.3); } to { box-shadow: 0 0 0 8px rgba(230,81,0,0); } }
-.slot-label { font-size: 11px; fill: #999; pointer-events: none; }
-.slot-value { font-size: 12px; fill: #333; pointer-events: none; font-weight: 600; }
 .tree-hint { font-size: 0.8rem; color: #e65100; margin-bottom: 8px; }
 
 .code-block { background: #1e1e1e; color: #d4d4d4; padding: 16px; border-radius: 8px; font-family: "Cascadia Code","Fira Code","JetBrains Mono",Consolas,monospace; font-size: 0.85rem; line-height: 1.6; overflow-x: auto; white-space: pre; margin: 12px 0; }
@@ -91,8 +81,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC"
   .nav button { padding: 10px; font-size: 0.9rem; }
   .palette-chip { padding: 6px 12px; font-size: 0.8rem; }
   .code-block { font-size: 0.7rem; padding: 12px; }
-  .tree-slot circle { r: 14; }
-  .slot-value { font-size: 10px; }
 }
 </style>
 </head>
@@ -142,94 +130,64 @@ const questions = [
   { type:"fill", q:"假定一棵树表示为A(B(C，D(E，F，G)，H(I，J)))，则树的度为____。", answer:"3", explain:"结点D有3个子结点(E、F、G)，是树中度最大的结点，因此树的度为3。" },
   { type:"fill", q:"对于线性表(70，34，55，23，65，41，20，100)进行散列存储时，若选用H(K)=K%9作为散列函数，则散列地址为1的元素有____个。", answer:"2", explain:"70%9=7, 34%9=7, 55%9=1, 23%9=5, 65%9=2, 41%9=5, 20%9=2, 100%9=1。地址为1的有55和100，共2个。" },
   { type:"fill", q:"树中结点A拥有的子树个数称为结点A的( ____ )。", answer:"度", explain:"结点的度定义为该结点拥有的子树个数。" },
-  { type:"fill", q:"中缀算式(3+4)*2/(8-5)所对应的后缀算式为( ____ )。", answer:"34+2*85-/", explain:"中缀转后缀：(3+4)*2/(8-5) → 先算(3+4)为34+，再乘以2为34+2*，最后除以(8-5)即85-：34+2*85-/" },
+  { type:"fill", q:"中缀算式(3+4)*2/(8-5)所对应的后缀算式为( ____ )。", answer:"34+2*85-/", explain:"中缀转后缀：(3+4)*2/(8-5) → 34+2*85-/" },
 
-  // === 作图题 27-29 (interactive tree builder) ===
-  {
-    type:"drawing", q:"有序列(5,12,30,45,70,73,80,85,89,100,103,109)，请将结点填入二叉判定树的正确位置。",
-    treeViewBox:"0 0 600 250",
-    treeLines: `<line x1="300" y1="28" x2="150" y2="83" stroke="#999" stroke-width="1.5"/>
-<line x1="300" y1="28" x2="450" y2="83" stroke="#999" stroke-width="1.5"/>
-<line x1="150" y1="83" x2="75" y2="138" stroke="#999" stroke-width="1.5"/>
-<line x1="150" y1="83" x2="225" y2="138" stroke="#999" stroke-width="1.5"/>
-<line x1="450" y1="83" x2="375" y2="138" stroke="#999" stroke-width="1.5"/>
-<line x1="450" y1="83" x2="525" y2="138" stroke="#999" stroke-width="1.5"/>
-<line x1="75" y1="138" x2="35" y2="193" stroke="#999" stroke-width="1.5"/>
-<line x1="75" y1="138" x2="115" y2="193" stroke="#999" stroke-width="1.5"/>
-<line x1="225" y1="138" x2="195" y2="193" stroke="#999" stroke-width="1.5"/>
-<line x1="225" y1="138" x2="255" y2="193" stroke="#999" stroke-width="1.5"/>
-<line x1="375" y1="138" x2="340" y2="193" stroke="#999" stroke-width="1.5"/>
-<line x1="375" y1="138" x2="410" y2="193" stroke="#999" stroke-width="1.5"/>
-<line x1="525" y1="138" x2="495" y2="193" stroke="#999" stroke-width="1.5"/>
-<line x1="525" y1="138" x2="555" y2="193" stroke="#999" stroke-width="1.5"/>`,
-    slots: [
-      {id:0, x:300, y:28, answer:"73"},
-      {id:1, x:150, y:83, answer:"30"},
-      {id:2, x:450, y:83, answer:"89"},
-      {id:3, x:75, y:138, answer:"5"},
-      {id:4, x:225, y:138, answer:"45"},
-      {id:5, x:375, y:138, answer:"80"},
-      {id:6, x:525, y:138, answer:"103"},
-      {id:7, x:35, y:193, answer:"∅"},
-      {id:8, x:115, y:193, answer:"12"},
-      {id:9, x:195, y:193, answer:"∅"},
-      {id:10, x:255, y:193, answer:"70"},
-      {id:11, x:340, y:193, answer:"∅"},
-      {id:12, x:410, y:193, answer:"85"},
-      {id:13, x:495, y:193, answer:"100"},
-      {id:14, x:555, y:193, answer:"109"}
+  // === 作图题 27-29 (canvas-based) ===
+  { type:"drawing",
+    q:"有序列(5,12,30,45,70,73,80,85,89,100,103,109)，请将结点填入二叉判定树的正确位置。",
+    vw:600, vh:250,
+    lines:[
+      {x1:300,y1:28,x2:150,y2:83},{x1:300,y1:28,x2:450,y2:83},
+      {x1:150,y1:83,x2:75,y2:138},{x1:150,y1:83,x2:225,y2:138},
+      {x1:450,y1:83,x2:375,y2:138},{x1:450,y1:83,x2:525,y2:138},
+      {x1:75,y1:138,x2:35,y2:193},{x1:75,y1:138,x2:115,y2:193},
+      {x1:225,y1:138,x2:195,y2:193},{x1:225,y1:138,x2:255,y2:193},
+      {x1:375,y1:138,x2:340,y2:193},{x1:375,y1:138,x2:410,y2:193},
+      {x1:525,y1:138,x2:495,y2:193},{x1:525,y1:138,x2:555,y2:193}
+    ],
+    slots:[
+      {id:0,x:300,y:28,answer:"73"},{id:1,x:150,y:83,answer:"30"},{id:2,x:450,y:83,answer:"89"},
+      {id:3,x:75,y:138,answer:"5"},{id:4,x:225,y:138,answer:"45"},{id:5,x:375,y:138,answer:"80"},
+      {id:6,x:525,y:138,answer:"103"},{id:7,x:35,y:193,answer:"∅"},{id:8,x:115,y:193,answer:"12"},
+      {id:9,x:195,y:193,answer:"∅"},{id:10,x:255,y:193,answer:"70"},{id:11,x:340,y:193,answer:"∅"},
+      {id:12,x:410,y:193,answer:"85"},{id:13,x:495,y:193,answer:"100"},{id:14,x:555,y:193,answer:"109"}
     ],
     explain:"二分查找判定树：每次取中间元素作为根。12个元素，mid=(0+11)/2=5→73为根；左半[0,4]mid=2→30；右半[6,11]mid=8→89；递归构建。空结点∅表示查找不成功的区间。"
   },
-  {
-    type:"drawing", q:"已知二叉树的前序序列为 B,A,C,D,F,E,G，中序序列为 D,C,A,F,G,E,B，请将该二叉树重组出来。",
-    treeViewBox:"0 0 280 260",
-    treeLines: `<line x1="140" y1="22" x2="65" y2="78" stroke="#999" stroke-width="2"/>
-<line x1="65" y1="78" x2="30" y2="133" stroke="#999" stroke-width="2"/>
-<line x1="65" y1="78" x2="100" y2="133" stroke="#999" stroke-width="2"/>
-<line x1="30" y1="133" x2="10" y2="188" stroke="#999" stroke-width="2"/>
-<line x1="100" y1="133" x2="100" y2="188" stroke="#999" stroke-width="2"/>
-<line x1="100" y1="188" x2="70" y2="235" stroke="#999" stroke-width="2"/>`,
-    slots: [
-      {id:0, x:140, y:22, answer:"B"},
-      {id:1, x:65, y:78, answer:"A"},
-      {id:2, x:30, y:133, answer:"C"},
-      {id:3, x:100, y:133, answer:"F"},
-      {id:4, x:10, y:188, answer:"D"},
-      {id:5, x:100, y:188, answer:"E"},
-      {id:6, x:70, y:235, answer:"G"}
+  { type:"drawing",
+    q:"已知二叉树的前序序列为 B,A,C,D,F,E,G，中序序列为 D,C,A,F,G,E,B，请将该二叉树重组出来。",
+    vw:280, vh:260,
+    lines:[
+      {x1:140,y1:22,x2:65,y2:78},{x1:65,y1:78,x2:30,y2:133},{x1:65,y1:78,x2:100,y2:133},
+      {x1:30,y1:133,x2:10,y2:188},{x1:100,y1:133,x2:100,y2:188},{x1:100,y1:188,x2:70,y2:235}
+    ],
+    slots:[
+      {id:0,x:140,y:22,answer:"B"},{id:1,x:65,y:78,answer:"A"},{id:2,x:30,y:133,answer:"C"},
+      {id:3,x:100,y:133,answer:"F"},{id:4,x:10,y:188,answer:"D"},{id:5,x:100,y:188,answer:"E"},
+      {id:6,x:70,y:235,answer:"G"}
     ],
     explain:"①前序第一个B是根，中序B在最后→B无右子树。②左子树前序ACDFEG，中序DCAFGE→A是根，中序分[D,C]和[F,G,E]。③递归：C为根→D在C左；F为根→E在F右，G在E左。"
   },
-  {
-    type:"drawing", q:"有一份电文中共使用五个字符：a、b、c、d、e，频率依次为8、14、10、4、18，请构造哈夫曼树（将值填入正确位置）。",
-    treeViewBox:"0 0 420 235",
-    treeLines: `<line x1="210" y1="15" x2="120" y2="75" stroke="#999" stroke-width="2"/>
-<line x1="210" y1="15" x2="300" y2="75" stroke="#999" stroke-width="2"/>
-<line x1="120" y1="75" x2="60" y2="135" stroke="#999" stroke-width="2"/>
-<line x1="120" y1="75" x2="180" y2="135" stroke="#999" stroke-width="2"/>
-<line x1="300" y1="75" x2="255" y2="135" stroke="#999" stroke-width="2"/>
-<line x1="300" y1="75" x2="345" y2="135" stroke="#999" stroke-width="2"/>
-<line x1="60" y1="135" x2="35" y2="195" stroke="#999" stroke-width="2"/>
-<line x1="60" y1="135" x2="85" y2="195" stroke="#999" stroke-width="2"/>`,
-    slots: [
-      {id:0, x:210, y:15, answer:"54"},
-      {id:1, x:120, y:75, answer:"22"},
-      {id:2, x:300, y:75, answer:"32"},
-      {id:3, x:60, y:135, answer:"12"},
-      {id:4, x:180, y:135, answer:"c:10"},
-      {id:5, x:255, y:135, answer:"b:14"},
-      {id:6, x:345, y:135, answer:"e:18"},
-      {id:7, x:35, y:195, answer:"d:4"},
-      {id:8, x:85, y:195, answer:"a:8"}
+  { type:"drawing",
+    q:"有一份电文中共使用五个字符：a、b、c、d、e，频率依次为8、14、10、4、18，请构造哈夫曼树（将值填入正确位置）。",
+    vw:420, vh:235,
+    lines:[
+      {x1:210,y1:15,x2:120,y2:75},{x1:210,y1:15,x2:300,y2:75},
+      {x1:120,y1:75,x2:60,y2:135},{x1:120,y1:75,x2:180,y2:135},
+      {x1:300,y1:75,x2:255,y2:135},{x1:300,y1:75,x2:345,y2:135},
+      {x1:60,y1:135,x2:35,y2:195},{x1:60,y1:135,x2:85,y2:195}
+    ],
+    slots:[
+      {id:0,x:210,y:15,answer:"54"},{id:1,x:120,y:75,answer:"22"},{id:2,x:300,y:75,answer:"32"},
+      {id:3,x:60,y:135,answer:"12"},{id:4,x:180,y:135,answer:"c:10"},{id:5,x:255,y:135,answer:"b:14"},
+      {id:6,x:345,y:135,answer:"e:18"},{id:7,x:35,y:195,answer:"d:4"},{id:8,x:85,y:195,answer:"a:8"}
     ],
     explain:"构造过程：①d(4)+a(8)=12 ②12+c(10)=22 ③b(14)+e(18)=32 ④22+32=54。WPL=4×3+8×3+10×2+14×2+18×2=120。编码：d=000, a=001, c=01, b=10, e=11（左0右1）。"
   },
 
   // === 编程题 30 ===
-  {
-    type:"code", q:"编写一个算法，在带表头结点的单链表中寻找第i个结点。若找到，则函数返回第i个结点的地址；若找不到，则函数返回NULL。",
-    code: `LNode* GetANode(LNode* &HL, int i)
+  { type:"code", q:"编写一个算法，在带表头结点的单链表中寻找第i个结点。若找到，则函数返回第i个结点的地址；若找不到，则函数返回NULL。",
+    code:`LNode* GetANode(LNode* &HL, int i)
 {
     if (i < 1) return NULL;
     LNode* p = HL->next;    // 跳过表头结点
@@ -247,23 +205,20 @@ const questions = [
 // ============ STATE ============
 let currentTab = 'all';
 let currentIndex = 0;
-let answered = {};       // {qIndex: bool}  graded result
-let userAnswers = {};    // {qIndex: answer} for single/fill
-let treeAssignments = {}; // {qIndex: {slotId: value}}  for drawing
-let treeChecked = {};     // {qIndex: {slotId: bool}}  per-slot result after check
+let answered = {};        // {qIndex: bool}
+let userAnswers = {};     // {qIndex: answer}
+let treeAssignments = {}; // {qIndex: {slotId: value}}
+let treeChecked = {};     // {qIndex: {slotId: bool}}
 let selectedSlot = {};    // {qIndex: slotId | null}
 
 function isGradable(q) { return q.type === 'single' || q.type === 'fill' || q.type === 'drawing'; }
-
 function getErrorSet() {
   let s = new Set();
   for (let i = 0; i < questions.length; i++) {
-    if (!isGradable(questions[i])) continue;
-    if (answered[i] === false) s.add(i);
+    if (isGradable(questions[i]) && answered[i] === false) s.add(i);
   }
   return s;
 }
-
 function getQuestionList() {
   if (currentTab === 'all') return questions.map((_, i) => i);
   return [...getErrorSet()].sort((a,b) => a-b);
@@ -271,55 +226,50 @@ function getQuestionList() {
 
 // ============ NAVIGATION ============
 function switchTab(tab) {
-  currentTab = tab;
-  currentIndex = 0;
-  document.querySelectorAll('.tab').forEach((t, i) => {
-    t.classList.toggle('active', (i === 0 && tab === 'all') || (i === 1 && tab === 'error'));
-  });
+  currentTab = tab; currentIndex = 0;
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', (i===0&&tab==='all')||(i===1&&tab==='error')));
   render();
 }
-function goPrev() { const list = getQuestionList(); if (currentIndex > 0) { currentIndex--; render(); } }
-function goNext() { const list = getQuestionList(); if (currentIndex < list.length - 1) { currentIndex++; render(); } }
+function goPrev() { const list=getQuestionList(); if(currentIndex>0){currentIndex--;render();} }
+function goNext() { const list=getQuestionList(); if(currentIndex<list.length-1){currentIndex++;render();} }
 
-// ============ SINGLE CHOICE ============
+// ============ SINGLE / FILL ============
 function selectOption(qIndex, optIndex) {
   if (answered[qIndex] !== undefined) return;
   answered[qIndex] = (optIndex === questions[qIndex].answer);
   userAnswers[qIndex] = optIndex;
-  updateErrorBadge();
-  render();
+  updateErrorBadge(); render();
 }
-
-// ============ FILL IN BLANK ============
 function submitFill(qIndex) {
   if (answered[qIndex] !== undefined) return;
-  const input = document.getElementById('fillInput');
-  if (!input) return;
+  const input = document.getElementById('fillInput'); if (!input) return;
   const userAns = input.value.trim();
-  const norm = (s) => s.replace(/\s+/g, '').toLowerCase();
+  const norm = s => s.replace(/\s+/g,'').toLowerCase();
   answered[qIndex] = (norm(userAns) === norm(questions[qIndex].answer));
   userAnswers[qIndex] = userAns;
-  updateErrorBadge();
-  render();
+  updateErrorBadge(); render();
 }
-function handleFillKeydown(qIndex, e) { if (e.key === 'Enter') submitFill(qIndex); }
+function handleFillKeydown(qIndex, e) { if (e.key==='Enter') submitFill(qIndex); }
 
-// ============ TREE BUILDER ============
+// ============ TREE STATE ============
 function initTreeState(qIndex) {
   if (!treeAssignments[qIndex]) treeAssignments[qIndex] = {};
   if (!treeChecked[qIndex]) treeChecked[qIndex] = {};
-  if (!selectedSlot[qIndex]) selectedSlot[qIndex] = null;
+  if (selectedSlot[qIndex] === undefined) selectedSlot[qIndex] = null;
 }
 
 function selectTreeSlot(qIndex, slotId) {
   initTreeState(qIndex);
-  // Allow editing anytime — user can fix wrong slots and recheck
   const curVal = treeAssignments[qIndex][slotId];
   if (curVal !== undefined) {
     delete treeAssignments[qIndex][slotId];
     selectedSlot[qIndex] = null;
   } else {
     selectedSlot[qIndex] = (selectedSlot[qIndex] === slotId) ? null : slotId;
+  }
+  // Clear previous check results on any edit
+  if (Object.keys(treeChecked[qIndex]||{}).length > 0) {
+    treeChecked[qIndex] = {}; answered[qIndex] = undefined; updateErrorBadge();
   }
   render();
 }
@@ -330,11 +280,8 @@ function placeTreeValue(qIndex, value) {
   if (sid === null || sid === undefined) return;
   treeAssignments[qIndex][sid] = value;
   selectedSlot[qIndex] = null;
-  // Clear previous check results so user can recheck
-  if (treeChecked[qIndex] && Object.keys(treeChecked[qIndex]).length > 0) {
-    treeChecked[qIndex] = {};
-    answered[qIndex] = undefined;
-    updateErrorBadge();
+  if (Object.keys(treeChecked[qIndex]||{}).length > 0) {
+    treeChecked[qIndex] = {}; answered[qIndex] = undefined; updateErrorBadge();
   }
   render();
 }
@@ -342,8 +289,7 @@ function placeTreeValue(qIndex, value) {
 function checkTreeAnswer(qIndex) {
   initTreeState(qIndex);
   const q = questions[qIndex];
-  const result = {};
-  let allCorrect = true;
+  const result = {}; let allCorrect = true;
   q.slots.forEach(slot => {
     const userVal = treeAssignments[qIndex][slot.id] || '';
     const ok = (userVal === slot.answer);
@@ -352,8 +298,7 @@ function checkTreeAnswer(qIndex) {
   });
   treeChecked[qIndex] = result;
   answered[qIndex] = allCorrect;
-  updateErrorBadge();
-  render();
+  updateErrorBadge(); render();
 }
 
 function redoTree(qIndex) {
@@ -362,67 +307,137 @@ function redoTree(qIndex) {
   selectedSlot[qIndex] = null;
   answered[qIndex] = undefined;
   userAnswers[qIndex] = undefined;
-  updateErrorBadge();
-  render();
+  updateErrorBadge(); render();
 }
-
-// ============ RESET ALL ============
+function redoQuestion(qIndex) {
+  answered[qIndex] = undefined; userAnswers[qIndex] = undefined;
+  if (questions[qIndex].type === 'drawing') { redoTree(qIndex); return; }
+  updateErrorBadge(); render();
+}
 function resetAll() {
   if (!confirm('确定要清除所有答题记录并重新开始吗？')) return;
-  answered = {};
-  userAnswers = {};
-  treeAssignments = {};
-  treeChecked = {};
-  selectedSlot = {};
-  currentIndex = 0;
-  currentTab = 'all';
-  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === 0));
-  updateErrorBadge();
-  render();
+  answered = {}; userAnswers = {}; treeAssignments = {}; treeChecked = {}; selectedSlot = {};
+  currentIndex = 0; currentTab = 'all';
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i===0));
+  updateErrorBadge(); render();
 }
+function updateErrorBadge() { document.getElementById('errorCount').textContent = getErrorSet().size; }
+function escapeHtml(s) { if (!s) return ''; return (''+s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-// ============ REDO (for single/fill) ============
-function redoQuestion(qIndex) {
-  answered[qIndex] = undefined;
-  userAnswers[qIndex] = undefined;
-  if (questions[qIndex].type === 'drawing') {
-    redoTree(qIndex);
-    return;
-  }
-  updateErrorBadge();
-  render();
-}
-
-// ============ HELPERS ============
-function getPalette(qIndex) {
+// ============ CANVAS TREE DRAWING ============
+function drawTree(qIndex) {
+  const canvas = document.getElementById('treeCanvas');
+  if (!canvas) return;
   const q = questions[qIndex];
-  const assigned = new Set(Object.values(treeAssignments[qIndex] || {}));
-  // Build palette from all slot answers, marking used ones
-  return q.slots.map(s => ({ id: s.id, value: s.answer, used: assigned.has(s.answer) }));
+  initTreeState(qIndex);
+  const assignments = treeAssignments[qIndex] || {};
+  const checked = treeChecked[qIndex] || {};
+  const selSlot = selectedSlot[qIndex];
+  const ctx = canvas.getContext('2d');
+  const W = q.vw, H = q.vh;
+  const R = 16;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Draw lines
+  ctx.strokeStyle = '#999';
+  ctx.lineWidth = 1.5;
+  q.lines.forEach(l => {
+    ctx.beginPath();
+    ctx.moveTo(l.x1, l.y1);
+    ctx.lineTo(l.x2, l.y2);
+    ctx.stroke();
+  });
+
+  // Draw slots
+  q.slots.forEach(slot => {
+    const val = assignments[slot.id];
+    const isFilled = val !== undefined;
+    const isSel = selSlot === slot.id;
+    const checkRes = checked[slot.id];
+
+    // Determine colors
+    let fill = '#fff', stroke = '#1a73e8', strokeW = 2;
+    if (checkRes === true) { fill = '#e6f4ec'; stroke = '#0d904f'; strokeW = 3; }
+    else if (checkRes === false) { fill = '#fce8e6'; stroke = '#d93025'; strokeW = 3; }
+    else if (isSel) { fill = '#fff3e0'; stroke = '#e65100'; strokeW = 3; }
+    else if (isFilled) { fill = '#e8f0fe'; strokeW = 2.5; }
+
+    // Circle
+    ctx.beginPath();
+    ctx.arc(slot.x, slot.y, R, 0, Math.PI * 2);
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = strokeW;
+    ctx.stroke();
+
+    // Text
+    ctx.fillStyle = '#333';
+    ctx.font = '600 11px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(isFilled ? val : '?', slot.x, slot.y);
+
+    // Slot label
+    ctx.fillStyle = '#aaa';
+    ctx.font = '9px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.fillText(slot.id + 1, slot.x, slot.y + R + 13);
+  });
 }
-function isPaletteValueUsed(qIndex, slotId, value) {
-  const assigned = treeAssignments[qIndex] || {};
-  for (let [s, v] of Object.entries(assigned)) {
-    if (parseInt(s) !== slotId && v === value) return true;
+
+// ============ CANVAS CLICK HANDLER ============
+document.querySelector('.container').addEventListener('click', function(e) {
+  // Tree canvas click
+  if (e.target.id === 'treeCanvas') {
+    const canvas = e.target;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const mx = (e.clientX - rect.left) * scaleX;
+    const my = (e.clientY - rect.top) * scaleY;
+
+    // Find current drawing question index
+    const list = getQuestionList();
+    if (list.length === 0) return;
+    const qIndex = list[currentIndex];
+    const q = questions[qIndex];
+    if (q.type !== 'drawing') return;
+
+    // Hit test slots
+    const R = 20; // generous hit radius for touch
+    let hitId = null;
+    for (const slot of q.slots) {
+      const dx = mx - slot.x, dy = my - slot.y;
+      if (dx * dx + dy * dy <= R * R) { hitId = slot.id; break; }
+    }
+    if (hitId !== null) {
+      selectTreeSlot(qIndex, hitId);
+      return;
+    }
   }
-  return false;
-}
-function updateErrorBadge() {
-  document.getElementById('errorCount').textContent = getErrorSet().size;
-}
-function escapeHtml(s) {
-  if (!s) return '';
-  return (''+s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
+
+  // Palette chip click
+  let chipEl = e.target;
+  while (chipEl && chipEl !== document.body) {
+    if (chipEl.hasAttribute && chipEl.hasAttribute('data-palette')) {
+      const qIndex = parseInt(chipEl.getAttribute('data-qindex'));
+      const value = chipEl.getAttribute('data-palette');
+      if (!isNaN(qIndex) && value !== null) {
+        placeTreeValue(qIndex, value);
+        return;
+      }
+    }
+    chipEl = chipEl.parentElement;
+  }
+});
 
 // ============ RENDER ============
 function render() {
   const list = getQuestionList();
   if (currentIndex >= list.length) currentIndex = Math.max(0, list.length - 1);
   if (list.length === 0) {
-    document.getElementById('card').innerHTML = `
-      <div class="empty-state"><div class="icon">&#127881;</div><p>错误集为空，全部正确！</p>
-      <button class="btn btn-outline" onclick="switchTab('all')">返回全部题目</button></div>`;
+    document.getElementById('card').innerHTML = `<div class="empty-state"><div class="icon">&#127881;</div><p>错误集为空，全部正确！</p><button class="btn btn-outline" onclick="switchTab('all')">返回全部题目</button></div>`;
     return;
   }
 
@@ -447,15 +462,15 @@ function render() {
       let cls = 'option';
       if (isAnswered) {
         if (oi === q.answer) cls += ' correct';
-        else if (oi === userAnswers[qIndex] && !isCorrect) cls += ' wrong';
+        else if (userAnswers[qIndex] === oi && !isCorrect) cls += ' wrong';
         cls += ' disabled';
-      } else if (userAnswers[qIndex] === oi) cls += ' selected';
+      }
       h += `<div class="${cls}" onclick="selectOption(${qIndex},${oi})">${opt}</div>`;
     });
     h += `</div>`;
   }
 
-  // --- Fill in blank ---
+  // --- Fill ---
   else if (q.type === 'fill') {
     const dis = isAnswered ? 'disabled' : '';
     const cls = isAnswered ? (isCorrect?'correct':'wrong') : '';
@@ -464,88 +479,41 @@ function render() {
     if (!isAnswered) h += `<br><button class="btn btn-blue" style="margin-top:10px" onclick="submitFill(${qIndex})">提交答案</button>`;
   }
 
-  // --- Drawing (interactive tree) ---
+  // --- Drawing (canvas) ---
   else if (q.type === 'drawing') {
     initTreeState(qIndex);
-    const assignments = treeAssignments[qIndex] || {};
-    const checked = treeChecked[qIndex] || {};
-    const checkedAny = Object.keys(checked).length > 0;
+    const checkedAny = Object.keys(treeChecked[qIndex]||{}).length > 0;
     const selSlot = selectedSlot[qIndex];
+    const assignments = treeAssignments[qIndex] || {};
 
-    // Palette of used values
-    const usedVals = new Set();
-    q.slots.forEach(s => {
-      const av = assignments[s.id];
-      if (av !== undefined) usedVals.add(av);
-    });
-
-    // Build SVG
-    let svg = `<svg viewBox="${q.treeViewBox}" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;height:auto">`;
-    svg += q.treeLines;
-
-    q.slots.forEach(slot => {
-      let slotCls = 'tree-slot';
-      if (checkedAny && checked[slot.id] !== undefined) {
-        slotCls += checked[slot.id] ? ' correct-slot' : ' wrong-slot';
-      } else if (selSlot === slot.id) {
-        slotCls += ' selected';
-      } else if (assignments[slot.id] !== undefined) {
-        slotCls += ' filled';
-      }
-      const r = 16;
-      svg += `<g class="${slotCls}" data-qindex="${qIndex}" data-slot="${slot.id}" style="cursor:pointer">`;
-      svg += `<circle cx="${slot.x}" cy="${slot.y}" r="${r}" fill="#fff" stroke="#1a73e8" stroke-width="2"/>`;
-      const val = assignments[slot.id];
-      if (val !== undefined) {
-        svg += `<text x="${slot.x}" y="${slot.y}" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#333" font-weight="600">${escapeHtml(val)}</text>`;
-      } else {
-        svg += `<text x="${slot.x}" y="${slot.y}" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#999">?</text>`;
-      }
-      svg += `</g>`;
-      // Slot number label
-      svg += `<text x="${slot.x}" y="${slot.y+r+13}" text-anchor="middle" font-size="9" fill="#aaa">${slot.id+1}</text>`;
-    });
-    svg += `</svg>`;
-
-    h += `<div class="tree-area">${svg}</div>`;
-
-    // Hint
+    h += `<div class="tree-area"><canvas id="treeCanvas" width="${q.vw}" height="${q.vh}"></canvas></div>`;
     if (!checkedAny) {
-      h += `<div class="tree-hint">👆 先点击树中一个<strong>空位</strong>选中，再点击下方<strong>结点值</strong>填入。（点击已填位置可移除）</div>`;
+      h += `<div class="tree-hint">👆 先点击树中<strong>空位</strong>(?)选中，再点击下方<strong>结点值</strong>填入。（点击已填位置可移除）</div>`;
+    } else {
+      h += `<div class="tree-hint" style="color:#0d904f">✅ 已检查 — 绿色正确，红色需修正</div>`;
     }
 
-    // Palette chips
-    h += `<div class="palette">`;
-    q.slots.forEach(slot => {
-      const val = slot.answer;
-      const isUsed = usedVals.has(val);
-      // Unique palette items - only show each value once
-      // Track which values we've already shown
-    });
+    // Palette
+    const usedVals = new Set();
+    q.slots.forEach(s => { if (assignments[s.id] !== undefined) usedVals.add(assignments[s.id]); });
 
-    // Build unique palette (deduplicate values, mark as used if all instances consumed)
-    const valueCount = {}; // how many slots need this value
+    const valueCount = {};
     q.slots.forEach(s => { valueCount[s.answer] = (valueCount[s.answer]||0) + 1; });
-    const placedCount = {}; // how many of this value are already placed
-    q.slots.forEach(s => {
-      if (assignments[s.id] !== undefined) {
-        placedCount[assignments[s.id]] = (placedCount[assignments[s.id]]||0) + 1;
-      }
-    });
+    const placedCount = {};
+    q.slots.forEach(s => { if (assignments[s.id] !== undefined) placedCount[assignments[s.id]] = (placedCount[assignments[s.id]]||0) + 1; });
 
-    const uniqueVals = [...new Set(q.slots.map(s => s.answer))];
-    uniqueVals.forEach(val => {
+    h += `<div class="palette">`;
+    [...new Set(q.slots.map(s => s.answer))].forEach(val => {
       const needed = valueCount[val] || 0;
       const placed = placedCount[val] || 0;
       const remaining = needed - placed;
       const isExhausted = remaining <= 0;
-      const isHighlight = !checkedAny && selSlot !== null && !isExhausted;
-      h += `<div class="palette-chip${isExhausted?' used':''}${isHighlight?' highlight':''}" data-qindex="${qIndex}" data-palette="${escapeHtml(val)}" style="cursor:pointer">${escapeHtml(val)}${needed>1?` (×${remaining})`:''}</div>`;
+      const isHighlight = !isExhausted && selSlot !== null;
+      h += `<div class="palette-chip${isExhausted?' used':''}${isHighlight?' highlight':''}" data-qindex="${qIndex}" data-palette="${escapeHtml(val)}">${escapeHtml(val)}${needed>1?` (×${remaining})`:''}</div>`;
     });
-
     h += `</div>`;
 
-    // Action buttons
+    // Buttons
     h += `<div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">`;
     if (!checkedAny) {
       h += `<button class="btn btn-orange" onclick="checkTreeAnswer(${qIndex})">✅ 检查答案</button>`;
@@ -557,12 +525,10 @@ function render() {
   // --- Code ---
   else if (q.type === 'code') {
     h += `<p style="color:#888;font-size:0.9rem;margin-bottom:8px;">💻 本题为编程题，请先自己编写，再点击查看参考代码。</p>`;
-    if (!isAnswered) {
-      h += `<button class="btn btn-orange" onclick="answered[${qIndex}]=true;render();">📖 显示参考代码</button>`;
-    }
+    if (!isAnswered) h += `<button class="btn btn-orange" onclick="answered[${qIndex}]=true;render();">📖 显示参考代码</button>`;
   }
 
-  // --- Answer reveal for single/fill ---
+  // --- Answer reveal: single/fill ---
   if (isAnswered && (q.type === 'single' || q.type === 'fill')) {
     const cls = isCorrect ? 'correct-ans' : 'wrong-ans';
     const icon = isCorrect ? '✅' : '❌';
@@ -574,15 +540,15 @@ function render() {
     </div>`;
   }
 
-  // --- Answer reveal for drawing (after check) ---
+  // --- Answer reveal: drawing ---
   if (q.type === 'drawing' && isAnswered !== undefined) {
     h += `<div class="answer-reveal show ${isCorrect?'correct-ans':'wrong-ans'}">
-      ${isCorrect?'✅ 全部正确！':'❌ 有错误，红色位置需要修正（点击结点值重新填入）'}
+      ${isCorrect?'✅ 全部正确！':'❌ 有错误（红色标记），点击错误位置修正后重新检查'}
       ${q.explain?`<br><span style="font-size:0.85rem;opacity:0.9;">📖 ${q.explain}</span>`:''}
     </div>`;
   }
 
-  // --- Answer reveal for code ---
+  // --- Answer reveal: code ---
   if (isAnswered && q.type === 'code' && q.code) {
     h += `<div class="answer-reveal show info-ans">
       <strong>💻 参考代码：</strong><div class="code-block">${escapeHtml(q.code)}</div>
@@ -591,41 +557,19 @@ function render() {
     </div>`;
   }
 
-  // --- Navigation ---
+  // --- Nav ---
   h += `<div class="nav">
     <button class="btn-prev" onclick="goPrev()" ${currentIndex===0?'disabled':''}>⬅ 上一题</button>
     <button class="btn-next" onclick="goNext()" ${currentIndex>=total-1?'disabled':''}>下一题 ➡</button>
   </div>`;
 
   document.getElementById('card').innerHTML = h;
-}
 
-// ============ EVENT DELEGATION ============
-document.querySelector('.container').addEventListener('click', function(e) {
-  // Walk up from target to find tree slot or palette chip
-  let el = e.target;
-  while (el && el !== document.body) {
-    // Tree slot
-    if (el.hasAttribute && el.hasAttribute('data-slot')) {
-      const qIndex = parseInt(el.getAttribute('data-qindex'));
-      const slotId = parseInt(el.getAttribute('data-slot'));
-      if (!isNaN(qIndex) && !isNaN(slotId)) {
-        selectTreeSlot(qIndex, slotId);
-        return;
-      }
-    }
-    // Palette chip
-    if (el.hasAttribute && el.hasAttribute('data-palette')) {
-      const qIndex = parseInt(el.getAttribute('data-qindex'));
-      const value = el.getAttribute('data-palette');
-      if (!isNaN(qIndex) && value !== null) {
-        placeTreeValue(qIndex, value);
-        return;
-      }
-    }
-    el = el.parentElement;
+  // Draw canvas AFTER innerHTML sets up the DOM
+  if (q.type === 'drawing') {
+    drawTree(qIndex);
   }
-});
+}
 
 // ============ INIT ============
 render();
