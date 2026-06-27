@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>数据结构A - 刷题</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; background: #f0f2f5; min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; padding: 16px; }
+.container { width: 100%; max-width: 740px; }
+.header { background: linear-gradient(135deg, #1a73e8, #1557b0); color: #fff; padding: 20px 24px; border-radius: 12px 12px 0 0; text-align: center; }
+.header h1 { font-size: 1.4rem; }
+.header .subtitle { font-size: 0.85rem; opacity: 0.85; margin-top: 4px; }
+.tabs { display: flex; background: #fff; border-bottom: 2px solid #e0e0e0; }
+.tab { flex: 1; text-align: center; padding: 12px; cursor: pointer; font-size: 0.95rem; color: #666; transition: all 0.2s; border-bottom: 2px solid transparent; margin-bottom: -2px; user-select: none; }
+.tab.active { color: #1a73e8; border-bottom-color: #1a73e8; font-weight: 600; }
+.card { background: #fff; border-radius: 0 0 12px 12px; padding: 24px; min-height: 420px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+.progress { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; font-size: 0.85rem; color: #888; }
+.progress-bar { width: 100%; height: 4px; background: #e0e0e0; border-radius: 2px; margin-bottom: 20px; }
+.progress-fill { height: 100%; background: #1a73e8; border-radius: 2px; transition: width 0.3s; }
+.question-type { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 0.75rem; background: #e8f0fe; color: #1a73e8; margin-bottom: 12px; }
+.question-type.drawing-tag { background: #fff3e0; color: #e65100; }
+.question-type.code-tag { background: #e8f5e9; color: #2e7d32; }
+.question-text { font-size: 1.05rem; line-height: 1.7; color: #333; margin-bottom: 20px; }
+.question-text strong { color: #1a73e8; }
+.options { display: flex; flex-direction: column; gap: 10px; }
+.option { padding: 14px 16px; border: 2px solid #e0e0e0; border-radius: 8px; cursor: pointer; transition: all 0.2s; font-size: 0.95rem; line-height: 1.5; user-select: none; }
+.option:hover:not(.disabled) { border-color: #1a73e8; background: #f5f8ff; }
+.option.selected { border-color: #1a73e8; background: #e8f0fe; }
+.option.correct { border-color: #0d904f; background: #e6f4ec; color: #0d904f; }
+.option.wrong { border-color: #d93025; background: #fce8e6; color: #d93025; }
+.option.disabled { pointer-events: none; opacity: 0.7; }
+.answer-reveal { margin-top: 16px; padding: 12px 16px; border-radius: 8px; font-size: 0.9rem; display: none; }
+.answer-reveal.show { display: block; }
+.answer-reveal.correct-ans { background: #e6f4ec; color: #0d904f; border: 1px solid #0d904f; }
+.answer-reveal.wrong-ans { background: #fce8e6; color: #d93025; border: 1px solid #d93025; }
+.answer-reveal.info-ans { background: #e8f0fe; color: #1a73e8; border: 1px solid #1a73e8; }
+.fill-input { width: 100%; padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1rem; outline: none; }
+.fill-input:focus { border-color: #1a73e8; }
+.fill-input.correct { border-color: #0d904f; background: #e6f4ec; }
+.fill-input.wrong { border-color: #d93025; background: #fce8e6; }
+.fill-input.disabled { pointer-events: none; }
+.btn { padding: 10px 24px; border: none; border-radius: 6px; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; }
+.btn-blue { background: #1a73e8; color: #fff; }
+.btn-blue:hover { background: #1557b0; }
+.btn-blue:disabled { background: #ccc; cursor: not-allowed; }
+.btn-orange { background: #e65100; color: #fff; }
+.btn-orange:hover { background: #bf360c; }
+.btn-outline { background: #fff; color: #1a73e8; border: 2px solid #1a73e8; }
+.btn-outline:hover { background: #f5f8ff; }
+.nav { display: flex; justify-content: space-between; margin-top: 20px; gap: 12px; }
+.nav button { flex: 1; padding: 12px; border: 2px solid #1a73e8; border-radius: 8px; font-size: 0.95rem; cursor: pointer; transition: all 0.2s; }
+.btn-prev { background: #fff; color: #1a73e8; }
+.btn-prev:hover { background: #f5f8ff; }
+.btn-next { background: #1a73e8; color: #fff; }
+.btn-next:hover { background: #1557b0; }
+.nav button:disabled { opacity: 0.4; cursor: not-allowed; }
+.error-badge { background: #d93025; color: #fff; border-radius: 10px; padding: 1px 8px; font-size: 0.75rem; margin-left: 4px; }
+.empty-state { text-align: center; padding: 60px 20px; color: #888; }
+.empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+.empty-state p { font-size: 0.95rem; }
+
+/* Tree Builder */
+.tree-area { position: relative; text-align: center; margin: 12px 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.tree-area svg { max-width: 100%; height: auto; min-height: 200px; }
+.tree-slot { cursor: pointer; transition: all 0.2s; pointer-events: all; }
+.tree-slot circle, .tree-slot text { pointer-events: none; }
+.tree-slot:hover { filter: brightness(0.9); }
+.tree-slot.selected circle { stroke: #e65100; stroke-width: 3; fill: #fff3e0; }
+.tree-slot.filled circle { fill: #e8f0fe; stroke-width: 2.5; }
+.tree-slot.correct-slot circle { fill: #e6f4ec; stroke: #0d904f; stroke-width: 3; }
+.tree-slot.wrong-slot circle { fill: #fce8e6; stroke: #d93025; stroke-width: 3; }
+.palette { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; justify-content: center; }
+.palette-chip { padding: 8px 16px; border: 2px solid #1a73e8; border-radius: 20px; background: #fff; color: #1a73e8; font-size: 0.9rem; cursor: pointer; user-select: none; transition: all 0.15s; font-weight: 500; }
+.palette-chip:hover { background: #e8f0fe; transform: scale(1.05); }
+.palette-chip.used { opacity: 0.3; pointer-events: none; border-color: #ccc; color: #ccc; }
+.palette-chip.highlight { background: #fff3e0; border-color: #e65100; color: #e65100; animation: pulse 0.6s infinite alternate; }
+@keyframes pulse { from { box-shadow: 0 0 0 0 rgba(230,81,0,0.3); } to { box-shadow: 0 0 0 8px rgba(230,81,0,0); } }
+.slot-label { font-size: 11px; fill: #999; pointer-events: none; }
+.slot-value { font-size: 12px; fill: #333; pointer-events: none; font-weight: 600; }
+.tree-hint { font-size: 0.8rem; color: #e65100; margin-bottom: 8px; }
+
+.code-block { background: #1e1e1e; color: #d4d4d4; padding: 16px; border-radius: 8px; font-family: "Cascadia Code","Fira Code","JetBrains Mono",Consolas,monospace; font-size: 0.85rem; line-height: 1.6; overflow-x: auto; white-space: pre; margin: 12px 0; }
+
+@media (max-width: 480px) {
+  .header { padding: 16px; }
+  .header h1 { font-size: 1.2rem; }
+  .card { padding: 16px; }
+  .question-text { font-size: 0.95rem; }
+  .option { padding: 12px 14px; font-size: 0.9rem; }
+  .nav button { padding: 10px; font-size: 0.9rem; }
+  .palette-chip { padding: 6px 12px; font-size: 0.8rem; }
+  .code-block { font-size: 0.7rem; padding: 12px; }
+  .tree-slot circle { r: 14; }
+  .slot-value { font-size: 10px; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>数据结构A 复习刷题</h1>
+    <div class="subtitle" id="subtitle">共 31 题 · 单选题 22 + 填空题 5 + 作图题 3 + 编程题 1</div>
+    <button style="color:#fff;background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.5);border-radius:6px;margin-top:10px;font-size:0.8rem;padding:6px 16px;cursor:pointer;" onclick="resetAll()">🔄 全部重做</button>
+  </div>
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('all')">全部题目</div>
+    <div class="tab" onclick="switchTab('error')">错误集 <span class="error-badge" id="errorCount">0</span></div>
+  </div>
+  <div class="card" id="card"></div>
+</div>
+
+<script>
+// ============ QUESTION DATA ============
+const questions = [
+  // === 单选题 0-21 ===
+  { type:"single", q:"用链接方式存储的队列，在进行删除运算时( )。", options:["A. 仅修改头指针","B. 仅修改尾指针","C. 头、尾指针都要修改","D. 头、尾指针可能都要修改"], answer:3, explain:"链式队列删除时，若队列只有一个元素，头尾指针都需修改；若有多个元素，仅修改头指针。" },
+  { type:"single", q:"数据的基本单位是( )。", options:["A. 结点","B. 数据元素","C. 数据类型","D. 数据项"], answer:1, explain:"数据元素是数据的基本单位，数据项是数据的最小单位。" },
+  { type:"single", q:"在一个循环顺序存储的队列中，队首指针指向队首元素的( )位置。", options:["A. 前一个","B. 后一个","C. 当前","D. 任意"], answer:0, explain:"循环顺序队列中，队首指针通常指向队首元素的前一个位置，以区分队空和队满。" },
+  { type:"single", q:"对线性表进行二分法查找，其前提条件是( )。", options:["A. 线性表以顺序方式存储，并且按关键码值排好序","B. 线性表以顺序方式存储，并且按关键码值的检索频率排好序","C. 线性表以链接方式存储，并且按关键码值排好序","D. 线性表以链接方式存储，并且按关键码值的检索频率排好序"], answer:0, explain:"二分查找要求顺序存储且有序。" },
+  { type:"single", q:"数据结构中( )是一个线性结构。", options:["A. 有向图","B. 队列","C. 二叉树","D. B树"], answer:1, explain:"队列是线性结构，有向图、二叉树、B树均是非线性结构。" },
+  { type:"single", q:"( )是\"Yu**Jia**Shan\"的子串。", options:["A. \"Yu\"","B. \"jia\"","C. \"**Shn\"","D. \"YuJiaShan\""], answer:0, explain:"子串必须是连续字符序列。\"jia\"大小写不匹配，\"**Shn\"不连续，\"YuJiaShan\"缺少**。" },
+  { type:"single", q:"下列关于数据结构的叙述中，正确的是( )。", options:["A. 数组是同类型值的集合","B. 递归算法的程序结构比迭代算法的程序结构更为精炼","C. 树是一种线性结构","D. 用一维数组存储二叉树，总是以先序遍历的顺序存储各结点"], answer:0, explain:"数组是同类型值的集合是正确的。递归不一定比迭代精炼；树是非线性结构；二叉树顺序存储不限于先序遍历。" },
+  { type:"single", q:"在单链表HL中，若要向表头插入一个由指针p指向的结点，则执行( )。", options:["A. HL=p; p->next=HL;","B. p->next=HL; HL=p;","C. p->next=HL; p=HL;","D. p->next=HL->next; HL->next=p;"], answer:1, explain:"头插法：先让新结点指向原头结点 p->next=HL，再更新头指针 HL=p。" },
+  { type:"single", q:"在顺序表(2,5,7,10,14,15,18,23,35,41,52)中，用二分法查找关键码值7，所需的关键码比较次数为( )。", options:["A. 2","B. 3","C. 4","D. 5"], answer:0, explain:"第一次mid=15(位置5)，7<15往左；第二次mid=7(位置2)，找到。共2次。" },
+  { type:"single", q:"下列关于数据结构的叙述中，正确的是( )。", options:["A. 数组是同类型值的集合","B. 递归算法的程序结构比迭代算法的程序结构更为精炼","C. 树是一种线性结构","D. 用一维数组存储二叉树，总是以先序遍历的顺序存储各结点"], answer:0, explain:"同第7题。" },
+  { type:"single", q:"无向完全图的邻接矩阵是( )矩阵。", options:["A. 对称","B. 上三角","C. 下三角","D. 稀疏"], answer:0, explain:"无向图的边是无向的，因此邻接矩阵关于主对角线对称。" },
+  { type:"single", q:"由权值分别为3,8,6,2,5的叶子结点生成一棵哈夫曼树，它的带权路径长度为( )。", options:["A. 53","B. 72","C. 23","D. 46"], answer:0, explain:"构造：合并2+3=5，5+5=10，6+8=14，10+14=24。WPL=2×3+3×3+5×2+6×2+8×2=53。" },
+  { type:"single", q:"在待排序文件已基本有序的前提下，下述排序方法中效率最高的是( )。", options:["A. 直接插入排序","B. 直接选择排序","C. 快速排序","D. 归并排序"], answer:0, explain:"直接插入排序在基本有序时效率最高，时间复杂度接近O(n)。" },
+  { type:"single", q:"若8行6列的数组以行序为主序顺序存储，基地址为2000，每个元素占2个存储单元，则第5行第3列的元素(假定无第0行第0列)的地址是( )。", options:["A. 2086","B. 2032","C. 2068","D. A,B,C都不对"], answer:3, explain:"LOC(5,3)=2000+((5-1)×6+(3-1))×2=2000+52=2052。A、B、C都不对。" },
+  { type:"single", q:"( )不是队列的基本运算。", options:["A. 从队尾插入一个新元素","B. 从队列中删除第i个元素","C. 判断一个队列是否为空","D. 读取队头元素的值"], answer:1, explain:"队列只允许在队头删除、队尾插入，不支持删除任意位置的元素。" },
+  { type:"single", q:"对线性表，在( )情况下应当采用顺序表表示。", options:["A. 经常需要随机地存取元素","B. 经常需要进行插入和删除操作","C. 表中元素需要占据一片连续的存储空间","D. 表中元素的个数不变"], answer:0, explain:"顺序表支持O(1)随机存取，适合频繁随机访问的场景。" },
+  { type:"single", q:"队列通常采用两种存储结构是( )。", options:["A. 顺序存储结构和链表存储结构","B. 散列方式和索引方式","C. 链表存储结构和数组","D. 线性存储结构和非线性存储结构"], answer:0, explain:"队列的两种存储结构是顺序存储（循环队列）和链式存储（链队列）。" },
+  { type:"single", q:"字符A、B、C依次进入一个栈，按出栈的先后顺序组成不同的字符串，至多可以组成( )个不同的字符串。", options:["A. 5","B. 4","C. 6","D. 1"], answer:0, explain:"出栈序列：ABC、ACB、BAC、BCA、CBA（CAB不可能）共5种。" },
+  { type:"single", q:"( )是顺序存储方式的优点。", options:["A. 存储密度大","B. 插入运算方便","C. 删除运算方便","D. 可方便地用于各种逻辑结构的存储表示"], answer:0, explain:"顺序存储不需要额外指针空间，存储密度大。缺点是插入删除不方便。" },
+  { type:"single", q:"按照二叉树的定义，具有3个结点的二叉树有( )种。", options:["A. 3","B. 4","C. 5","D. 6"], answer:2, explain:"3个结点的二叉树有5种形态。" },
+  { type:"single", q:"以下数据结构中( )是一个线性结构。", options:["A. 有向图","B. 栈","C. 线索二叉树","D. 树"], answer:1, explain:"栈是线性结构，属于操作受限的线性表。" },
+  { type:"single", q:"从二叉搜索树中查找一个元素时，其时间复杂度大小为( )。", options:["A. O(n)","B. O(1)","C. O(log₂n)","D. O(n²)"], answer:0, explain:"二叉搜索树最坏情况下退化为链表，查找时间复杂度为O(n)。" },
+
+  // === 填空题 22-26 ===
+  { type:"fill", q:"对于一个具有n个顶点和e条边的无向图，在其对应的邻接表中，所含边结点分别有____个。", answer:"2e", explain:"无向图中每条边在邻接表中对应两个边结点。" },
+  { type:"fill", q:"假定一棵树表示为A(B(C，D(E，F，G)，H(I，J)))，则树的度为____。", answer:"3", explain:"结点D有3个子结点(E、F、G)，是树中度最大的结点，因此树的度为3。" },
+  { type:"fill", q:"对于线性表(70，34，55，23，65，41，20，100)进行散列存储时，若选用H(K)=K%9作为散列函数，则散列地址为1的元素有____个。", answer:"2", explain:"70%9=7, 34%9=7, 55%9=1, 23%9=5, 65%9=2, 41%9=5, 20%9=2, 100%9=1。地址为1的有55和100，共2个。" },
+  { type:"fill", q:"树中结点A拥有的子树个数称为结点A的( ____ )。", answer:"度", explain:"结点的度定义为该结点拥有的子树个数。" },
+  { type:"fill", q:"中缀算式(3+4)*2/(8-5)所对应的后缀算式为( ____ )。", answer:"34+2*85-/", explain:"中缀转后缀：(3+4)*2/(8-5) → 先算(3+4)为34+，再乘以2为34+2*，最后除以(8-5)即85-：34+2*85-/" },
+
+  // === 作图题 27-29 (interactive tree builder) ===
+  {
+    type:"drawing", q:"有序列(5,12,30,45,70,73,80,85,89,100,103,109)，请将结点填入二叉判定树的正确位置。",
+    treeViewBox:"0 0 600 250",
+    treeLines: `<line x1="300" y1="28" x2="150" y2="83" stroke="#999" stroke-width="1.5"/>
+<line x1="300" y1="28" x2="450" y2="83" stroke="#999" stroke-width="1.5"/>
+<line x1="150" y1="83" x2="75" y2="138" stroke="#999" stroke-width="1.5"/>
+<line x1="150" y1="83" x2="225" y2="138" stroke="#999" stroke-width="1.5"/>
+<line x1="450" y1="83" x2="375" y2="138" stroke="#999" stroke-width="1.5"/>
+<line x1="450" y1="83" x2="525" y2="138" stroke="#999" stroke-width="1.5"/>
+<line x1="75" y1="138" x2="35" y2="193" stroke="#999" stroke-width="1.5"/>
+<line x1="75" y1="138" x2="115" y2="193" stroke="#999" stroke-width="1.5"/>
+<line x1="225" y1="138" x2="195" y2="193" stroke="#999" stroke-width="1.5"/>
+<line x1="225" y1="138" x2="255" y2="193" stroke="#999" stroke-width="1.5"/>
+<line x1="375" y1="138" x2="340" y2="193" stroke="#999" stroke-width="1.5"/>
+<line x1="375" y1="138" x2="410" y2="193" stroke="#999" stroke-width="1.5"/>
+<line x1="525" y1="138" x2="495" y2="193" stroke="#999" stroke-width="1.5"/>
+<line x1="525" y1="138" x2="555" y2="193" stroke="#999" stroke-width="1.5"/>`,
+    slots: [
+      {id:0, x:300, y:28, answer:"73"},
+      {id:1, x:150, y:83, answer:"30"},
+      {id:2, x:450, y:83, answer:"89"},
+      {id:3, x:75, y:138, answer:"5"},
+      {id:4, x:225, y:138, answer:"45"},
+      {id:5, x:375, y:138, answer:"80"},
+      {id:6, x:525, y:138, answer:"103"},
+      {id:7, x:35, y:193, answer:"∅"},
+      {id:8, x:115, y:193, answer:"12"},
+      {id:9, x:195, y:193, answer:"∅"},
+      {id:10, x:255, y:193, answer:"70"},
+      {id:11, x:340, y:193, answer:"∅"},
+      {id:12, x:410, y:193, answer:"85"},
+      {id:13, x:495, y:193, answer:"100"},
+      {id:14, x:555, y:193, answer:"109"}
+    ],
+    explain:"二分查找判定树：每次取中间元素作为根。12个元素，mid=(0+11)/2=5→73为根；左半[0,4]mid=2→30；右半[6,11]mid=8→89；递归构建。空结点∅表示查找不成功的区间。"
+  },
+  {
+    type:"drawing", q:"已知二叉树的前序序列为 B,A,C,D,F,E,G，中序序列为 D,C,A,F,G,E,B，请将该二叉树重组出来。",
+    treeViewBox:"0 0 280 260",
+    treeLines: `<line x1="140" y1="22" x2="65" y2="78" stroke="#999" stroke-width="2"/>
+<line x1="65" y1="78" x2="30" y2="133" stroke="#999" stroke-width="2"/>
+<line x1="65" y1="78" x2="100" y2="133" stroke="#999" stroke-width="2"/>
+<line x1="30" y1="133" x2="10" y2="188" stroke="#999" stroke-width="2"/>
+<line x1="100" y1="133" x2="100" y2="188" stroke="#999" stroke-width="2"/>
+<line x1="100" y1="188" x2="70" y2="235" stroke="#999" stroke-width="2"/>`,
+    slots: [
+      {id:0, x:140, y:22, answer:"B"},
+      {id:1, x:65, y:78, answer:"A"},
+      {id:2, x:30, y:133, answer:"C"},
+      {id:3, x:100, y:133, answer:"F"},
+      {id:4, x:10, y:188, answer:"D"},
+      {id:5, x:100, y:188, answer:"E"},
+      {id:6, x:70, y:235, answer:"G"}
+    ],
+    explain:"①前序第一个B是根，中序B在最后→B无右子树。②左子树前序ACDFEG，中序DCAFGE→A是根，中序分[D,C]和[F,G,E]。③递归：C为根→D在C左；F为根→E在F右，G在E左。"
+  },
+  {
+    type:"drawing", q:"有一份电文中共使用五个字符：a、b、c、d、e，频率依次为8、14、10、4、18，请构造哈夫曼树（将值填入正确位置）。",
+    treeViewBox:"0 0 420 235",
+    treeLines: `<line x1="210" y1="15" x2="120" y2="75" stroke="#999" stroke-width="2"/>
+<line x1="210" y1="15" x2="300" y2="75" stroke="#999" stroke-width="2"/>
+<line x1="120" y1="75" x2="60" y2="135" stroke="#999" stroke-width="2"/>
+<line x1="120" y1="75" x2="180" y2="135" stroke="#999" stroke-width="2"/>
+<line x1="300" y1="75" x2="255" y2="135" stroke="#999" stroke-width="2"/>
+<line x1="300" y1="75" x2="345" y2="135" stroke="#999" stroke-width="2"/>
+<line x1="60" y1="135" x2="35" y2="195" stroke="#999" stroke-width="2"/>
+<line x1="60" y1="135" x2="85" y2="195" stroke="#999" stroke-width="2"/>`,
+    slots: [
+      {id:0, x:210, y:15, answer:"54"},
+      {id:1, x:120, y:75, answer:"22"},
+      {id:2, x:300, y:75, answer:"32"},
+      {id:3, x:60, y:135, answer:"12"},
+      {id:4, x:180, y:135, answer:"c:10"},
+      {id:5, x:255, y:135, answer:"b:14"},
+      {id:6, x:345, y:135, answer:"e:18"},
+      {id:7, x:35, y:195, answer:"d:4"},
+      {id:8, x:85, y:195, answer:"a:8"}
+    ],
+    explain:"构造过程：①d(4)+a(8)=12 ②12+c(10)=22 ③b(14)+e(18)=32 ④22+32=54。WPL=4×3+8×3+10×2+14×2+18×2=120。编码：d=000, a=001, c=01, b=10, e=11（左0右1）。"
+  },
+
+  // === 编程题 30 ===
+  {
+    type:"code", q:"编写一个算法，在带表头结点的单链表中寻找第i个结点。若找到，则函数返回第i个结点的地址；若找不到，则函数返回NULL。",
+    code: `LNode* GetANode(LNode* &HL, int i)
+{
+    if (i < 1) return NULL;
+    LNode* p = HL->next;    // 跳过表头结点
+    int count = 1;
+    while (p != NULL && count < i) {
+        p = p->next;
+        count++;
+    }
+    return p;  // p为NULL表示i超出表长
+}`,
+    explain:"关键点：①跳过表头结点从HL->next开始 ②count从1开始 ③i<1直接返回NULL ④循环条件p!=NULL防止越界 ⑤最终p要么指向目标结点要么为NULL。"
+  }
+];
+
+// ============ STATE ============
+let currentTab = 'all';
+let currentIndex = 0;
+let answered = {};       // {qIndex: bool}  graded result
+let userAnswers = {};    // {qIndex: answer} for single/fill
+let treeAssignments = {}; // {qIndex: {slotId: value}}  for drawing
+let treeChecked = {};     // {qIndex: {slotId: bool}}  per-slot result after check
+let selectedSlot = {};    // {qIndex: slotId | null}
+
+function isGradable(q) { return q.type === 'single' || q.type === 'fill' || q.type === 'drawing'; }
+
+function getErrorSet() {
+  let s = new Set();
+  for (let i = 0; i < questions.length; i++) {
+    if (!isGradable(questions[i])) continue;
+    if (answered[i] === false) s.add(i);
+  }
+  return s;
+}
+
+function getQuestionList() {
+  if (currentTab === 'all') return questions.map((_, i) => i);
+  return [...getErrorSet()].sort((a,b) => a-b);
+}
+
+// ============ NAVIGATION ============
+function switchTab(tab) {
+  currentTab = tab;
+  currentIndex = 0;
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', (i === 0 && tab === 'all') || (i === 1 && tab === 'error'));
+  });
+  render();
+}
+function goPrev() { const list = getQuestionList(); if (currentIndex > 0) { currentIndex--; render(); } }
+function goNext() { const list = getQuestionList(); if (currentIndex < list.length - 1) { currentIndex++; render(); } }
+
+// ============ SINGLE CHOICE ============
+function selectOption(qIndex, optIndex) {
+  if (answered[qIndex] !== undefined) return;
+  answered[qIndex] = (optIndex === questions[qIndex].answer);
+  userAnswers[qIndex] = optIndex;
+  updateErrorBadge();
+  render();
+}
+
+// ============ FILL IN BLANK ============
+function submitFill(qIndex) {
+  if (answered[qIndex] !== undefined) return;
+  const input = document.getElementById('fillInput');
+  if (!input) return;
+  const userAns = input.value.trim();
+  const norm = (s) => s.replace(/\s+/g, '').toLowerCase();
+  answered[qIndex] = (norm(userAns) === norm(questions[qIndex].answer));
+  userAnswers[qIndex] = userAns;
+  updateErrorBadge();
+  render();
+}
+function handleFillKeydown(qIndex, e) { if (e.key === 'Enter') submitFill(qIndex); }
+
+// ============ TREE BUILDER ============
+function initTreeState(qIndex) {
+  if (!treeAssignments[qIndex]) treeAssignments[qIndex] = {};
+  if (!treeChecked[qIndex]) treeChecked[qIndex] = {};
+  if (!selectedSlot[qIndex]) selectedSlot[qIndex] = null;
+}
+
+function selectTreeSlot(qIndex, slotId) {
+  initTreeState(qIndex);
+  // Allow editing anytime — user can fix wrong slots and recheck
+  const curVal = treeAssignments[qIndex][slotId];
+  if (curVal !== undefined) {
+    delete treeAssignments[qIndex][slotId];
+    selectedSlot[qIndex] = null;
+  } else {
+    selectedSlot[qIndex] = (selectedSlot[qIndex] === slotId) ? null : slotId;
+  }
+  render();
+}
+
+function placeTreeValue(qIndex, value) {
+  initTreeState(qIndex);
+  const sid = selectedSlot[qIndex];
+  if (sid === null || sid === undefined) return;
+  treeAssignments[qIndex][sid] = value;
+  selectedSlot[qIndex] = null;
+  // Clear previous check results so user can recheck
+  if (treeChecked[qIndex] && Object.keys(treeChecked[qIndex]).length > 0) {
+    treeChecked[qIndex] = {};
+    answered[qIndex] = undefined;
+    updateErrorBadge();
+  }
+  render();
+}
+
+function checkTreeAnswer(qIndex) {
+  initTreeState(qIndex);
+  const q = questions[qIndex];
+  const result = {};
+  let allCorrect = true;
+  q.slots.forEach(slot => {
+    const userVal = treeAssignments[qIndex][slot.id] || '';
+    const ok = (userVal === slot.answer);
+    result[slot.id] = ok;
+    if (!ok) allCorrect = false;
+  });
+  treeChecked[qIndex] = result;
+  answered[qIndex] = allCorrect;
+  updateErrorBadge();
+  render();
+}
+
+function redoTree(qIndex) {
+  treeAssignments[qIndex] = {};
+  treeChecked[qIndex] = {};
+  selectedSlot[qIndex] = null;
+  answered[qIndex] = undefined;
+  userAnswers[qIndex] = undefined;
+  updateErrorBadge();
+  render();
+}
+
+// ============ RESET ALL ============
+function resetAll() {
+  if (!confirm('确定要清除所有答题记录并重新开始吗？')) return;
+  answered = {};
+  userAnswers = {};
+  treeAssignments = {};
+  treeChecked = {};
+  selectedSlot = {};
+  currentIndex = 0;
+  currentTab = 'all';
+  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === 0));
+  updateErrorBadge();
+  render();
+}
+
+// ============ REDO (for single/fill) ============
+function redoQuestion(qIndex) {
+  answered[qIndex] = undefined;
+  userAnswers[qIndex] = undefined;
+  if (questions[qIndex].type === 'drawing') {
+    redoTree(qIndex);
+    return;
+  }
+  updateErrorBadge();
+  render();
+}
+
+// ============ HELPERS ============
+function getPalette(qIndex) {
+  const q = questions[qIndex];
+  const assigned = new Set(Object.values(treeAssignments[qIndex] || {}));
+  // Build palette from all slot answers, marking used ones
+  return q.slots.map(s => ({ id: s.id, value: s.answer, used: assigned.has(s.answer) }));
+}
+function isPaletteValueUsed(qIndex, slotId, value) {
+  const assigned = treeAssignments[qIndex] || {};
+  for (let [s, v] of Object.entries(assigned)) {
+    if (parseInt(s) !== slotId && v === value) return true;
+  }
+  return false;
+}
+function updateErrorBadge() {
+  document.getElementById('errorCount').textContent = getErrorSet().size;
+}
+function escapeHtml(s) {
+  if (!s) return '';
+  return (''+s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ============ RENDER ============
+function render() {
+  const list = getQuestionList();
+  if (currentIndex >= list.length) currentIndex = Math.max(0, list.length - 1);
+  if (list.length === 0) {
+    document.getElementById('card').innerHTML = `
+      <div class="empty-state"><div class="icon">&#127881;</div><p>错误集为空，全部正确！</p>
+      <button class="btn btn-outline" onclick="switchTab('all')">返回全部题目</button></div>`;
+    return;
+  }
+
+  const qIndex = list[currentIndex];
+  const q = questions[qIndex];
+  const total = list.length;
+  const isAnswered = answered[qIndex] !== undefined;
+  const isCorrect = answered[qIndex];
+  const typeLabels = { single:'单选题', fill:'填空题', drawing:'作图题', code:'编程题' };
+
+  let h = '';
+  h += `<div class="progress"><span>第 ${currentIndex+1} / ${total} 题</span><span>${typeLabels[q.type]}</span></div>`;
+  h += `<div class="progress-bar"><div class="progress-fill" style="width:${(currentIndex+1)/total*100}%"></div></div>`;
+  const tagCls = q.type==='drawing'?'drawing-tag':q.type==='code'?'code-tag':'';
+  h += `<div class="question-type ${tagCls}">${typeLabels[q.type]}</div>`;
+  h += `<div class="question-text"><strong>${qIndex+1}.</strong> ${q.q}</div>`;
+
+  // --- Single choice ---
+  if (q.type === 'single') {
+    h += `<div class="options">`;
+    q.options.forEach((opt, oi) => {
+      let cls = 'option';
+      if (isAnswered) {
+        if (oi === q.answer) cls += ' correct';
+        else if (oi === userAnswers[qIndex] && !isCorrect) cls += ' wrong';
+        cls += ' disabled';
+      } else if (userAnswers[qIndex] === oi) cls += ' selected';
+      h += `<div class="${cls}" onclick="selectOption(${qIndex},${oi})">${opt}</div>`;
+    });
+    h += `</div>`;
+  }
+
+  // --- Fill in blank ---
+  else if (q.type === 'fill') {
+    const dis = isAnswered ? 'disabled' : '';
+    const cls = isAnswered ? (isCorrect?'correct':'wrong') : '';
+    const val = userAnswers[qIndex] !== undefined ? userAnswers[qIndex] : '';
+    h += `<input type="text" id="fillInput" class="fill-input ${cls} ${dis}" placeholder="请输入答案..." value="${escapeHtml(val)}" ${dis} onkeydown="handleFillKeydown(${qIndex},event)">`;
+    if (!isAnswered) h += `<br><button class="btn btn-blue" style="margin-top:10px" onclick="submitFill(${qIndex})">提交答案</button>`;
+  }
+
+  // --- Drawing (interactive tree) ---
+  else if (q.type === 'drawing') {
+    initTreeState(qIndex);
+    const assignments = treeAssignments[qIndex] || {};
+    const checked = treeChecked[qIndex] || {};
+    const checkedAny = Object.keys(checked).length > 0;
+    const selSlot = selectedSlot[qIndex];
+
+    // Palette of used values
+    const usedVals = new Set();
+    q.slots.forEach(s => {
+      const av = assignments[s.id];
+      if (av !== undefined) usedVals.add(av);
+    });
+
+    // Build SVG
+    let svg = `<svg viewBox="${q.treeViewBox}" xmlns="http://www.w3.org/2000/svg" style="max-width:100%;height:auto">`;
+    svg += q.treeLines;
+
+    q.slots.forEach(slot => {
+      let slotCls = 'tree-slot';
+      if (checkedAny && checked[slot.id] !== undefined) {
+        slotCls += checked[slot.id] ? ' correct-slot' : ' wrong-slot';
+      } else if (selSlot === slot.id) {
+        slotCls += ' selected';
+      } else if (assignments[slot.id] !== undefined) {
+        slotCls += ' filled';
+      }
+      const r = 16;
+      svg += `<g class="${slotCls}" data-qindex="${qIndex}" data-slot="${slot.id}" style="cursor:pointer">`;
+      svg += `<circle cx="${slot.x}" cy="${slot.y}" r="${r}" fill="#fff" stroke="#1a73e8" stroke-width="2"/>`;
+      const val = assignments[slot.id];
+      if (val !== undefined) {
+        svg += `<text x="${slot.x}" y="${slot.y}" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#333" font-weight="600">${escapeHtml(val)}</text>`;
+      } else {
+        svg += `<text x="${slot.x}" y="${slot.y}" text-anchor="middle" dominant-baseline="central" font-size="11" fill="#999">?</text>`;
+      }
+      svg += `</g>`;
+      // Slot number label
+      svg += `<text x="${slot.x}" y="${slot.y+r+13}" text-anchor="middle" font-size="9" fill="#aaa">${slot.id+1}</text>`;
+    });
+    svg += `</svg>`;
+
+    h += `<div class="tree-area">${svg}</div>`;
+
+    // Hint
+    if (!checkedAny) {
+      h += `<div class="tree-hint">👆 先点击树中一个<strong>空位</strong>选中，再点击下方<strong>结点值</strong>填入。（点击已填位置可移除）</div>`;
+    }
+
+    // Palette chips
+    h += `<div class="palette">`;
+    q.slots.forEach(slot => {
+      const val = slot.answer;
+      const isUsed = usedVals.has(val);
+      // Unique palette items - only show each value once
+      // Track which values we've already shown
+    });
+
+    // Build unique palette (deduplicate values, mark as used if all instances consumed)
+    const valueCount = {}; // how many slots need this value
+    q.slots.forEach(s => { valueCount[s.answer] = (valueCount[s.answer]||0) + 1; });
+    const placedCount = {}; // how many of this value are already placed
+    q.slots.forEach(s => {
+      if (assignments[s.id] !== undefined) {
+        placedCount[assignments[s.id]] = (placedCount[assignments[s.id]]||0) + 1;
+      }
+    });
+
+    const uniqueVals = [...new Set(q.slots.map(s => s.answer))];
+    uniqueVals.forEach(val => {
+      const needed = valueCount[val] || 0;
+      const placed = placedCount[val] || 0;
+      const remaining = needed - placed;
+      const isExhausted = remaining <= 0;
+      const isHighlight = !checkedAny && selSlot !== null && !isExhausted;
+      h += `<div class="palette-chip${isExhausted?' used':''}${isHighlight?' highlight':''}" data-qindex="${qIndex}" data-palette="${escapeHtml(val)}" style="cursor:pointer">${escapeHtml(val)}${needed>1?` (×${remaining})`:''}</div>`;
+    });
+
+    h += `</div>`;
+
+    // Action buttons
+    h += `<div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">`;
+    if (!checkedAny) {
+      h += `<button class="btn btn-orange" onclick="checkTreeAnswer(${qIndex})">✅ 检查答案</button>`;
+    }
+    h += `<button class="btn btn-outline" onclick="redoTree(${qIndex})" style="font-size:0.85rem;">🔄 重做本题</button>`;
+    h += `</div>`;
+  }
+
+  // --- Code ---
+  else if (q.type === 'code') {
+    h += `<p style="color:#888;font-size:0.9rem;margin-bottom:8px;">💻 本题为编程题，请先自己编写，再点击查看参考代码。</p>`;
+    if (!isAnswered) {
+      h += `<button class="btn btn-orange" onclick="answered[${qIndex}]=true;render();">📖 显示参考代码</button>`;
+    }
+  }
+
+  // --- Answer reveal for single/fill ---
+  if (isAnswered && (q.type === 'single' || q.type === 'fill')) {
+    const cls = isCorrect ? 'correct-ans' : 'wrong-ans';
+    const icon = isCorrect ? '✅' : '❌';
+    const ansDisp = q.type === 'single' ? q.options[q.answer] : q.answer;
+    h += `<div class="answer-reveal show ${cls}">
+      ${icon} <strong>${isCorrect?'回答正确':'回答错误'}</strong> &nbsp;正确答案：${escapeHtml(ansDisp)}
+      ${q.explain?`<br><span style="font-size:0.85rem;opacity:0.9;">📖 ${q.explain}</span>`:''}
+      <br><button class="btn btn-outline" style="margin-top:8px;font-size:0.8rem;padding:6px 16px;" onclick="redoQuestion(${qIndex})">🔄 重做本题</button>
+    </div>`;
+  }
+
+  // --- Answer reveal for drawing (after check) ---
+  if (q.type === 'drawing' && isAnswered !== undefined) {
+    h += `<div class="answer-reveal show ${isCorrect?'correct-ans':'wrong-ans'}">
+      ${isCorrect?'✅ 全部正确！':'❌ 有错误，红色位置需要修正（点击结点值重新填入）'}
+      ${q.explain?`<br><span style="font-size:0.85rem;opacity:0.9;">📖 ${q.explain}</span>`:''}
+    </div>`;
+  }
+
+  // --- Answer reveal for code ---
+  if (isAnswered && q.type === 'code' && q.code) {
+    h += `<div class="answer-reveal show info-ans">
+      <strong>💻 参考代码：</strong><div class="code-block">${escapeHtml(q.code)}</div>
+      ${q.explain?`<span style="font-size:0.85rem;">📖 ${q.explain}</span>`:''}
+      <br><button class="btn btn-outline" style="margin-top:8px;font-size:0.8rem;padding:6px 16px;" onclick="redoQuestion(${qIndex})">🔄 隐藏答案</button>
+    </div>`;
+  }
+
+  // --- Navigation ---
+  h += `<div class="nav">
+    <button class="btn-prev" onclick="goPrev()" ${currentIndex===0?'disabled':''}>⬅ 上一题</button>
+    <button class="btn-next" onclick="goNext()" ${currentIndex>=total-1?'disabled':''}>下一题 ➡</button>
+  </div>`;
+
+  document.getElementById('card').innerHTML = h;
+}
+
+// ============ EVENT DELEGATION ============
+document.querySelector('.container').addEventListener('click', function(e) {
+  // Walk up from target to find tree slot or palette chip
+  let el = e.target;
+  while (el && el !== document.body) {
+    // Tree slot
+    if (el.hasAttribute && el.hasAttribute('data-slot')) {
+      const qIndex = parseInt(el.getAttribute('data-qindex'));
+      const slotId = parseInt(el.getAttribute('data-slot'));
+      if (!isNaN(qIndex) && !isNaN(slotId)) {
+        selectTreeSlot(qIndex, slotId);
+        return;
+      }
+    }
+    // Palette chip
+    if (el.hasAttribute && el.hasAttribute('data-palette')) {
+      const qIndex = parseInt(el.getAttribute('data-qindex'));
+      const value = el.getAttribute('data-palette');
+      if (!isNaN(qIndex) && value !== null) {
+        placeTreeValue(qIndex, value);
+        return;
+      }
+    }
+    el = el.parentElement;
+  }
+});
+
+// ============ INIT ============
+render();
+</script>
+</body>
+</html>
