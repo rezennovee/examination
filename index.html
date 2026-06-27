@@ -566,7 +566,7 @@ function render() {
   }
 
   // --- Answer reveal: drawing ---
-  if (q.type === 'drawing' && isAnswered !== undefined) {
+  if (q.type === 'drawing' && isAnswered) {
     h += `<div class="answer-reveal show ${isCorrect?'correct-ans':'wrong-ans'}">
       ${isCorrect?'✅ 全部正确！':'❌ 有错误（红色标记），点击错误位置修正后重新检查'}
       ${q.explain?`<br><span style="font-size:0.85rem;opacity:0.9;">📖 ${q.explain}</span>`:''}
