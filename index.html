@@ -40,6 +40,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC"
 .fill-input.correct { border-color: #0d904f; background: #e6f4ec; }
 .fill-input.wrong { border-color: #d93025; background: #fce8e6; }
 .fill-input.disabled { pointer-events: none; }
+.code-textarea { width: 100%; min-height: 180px; padding: 14px 16px; border: 2px solid #e0e0e0; border-radius: 8px; font-family: "Cascadia Code","Fira Code","JetBrains Mono",Consolas,monospace; font-size: 0.85rem; line-height: 1.6; outline: none; resize: vertical; tab-size: 4; }
+.code-textarea:focus { border-color: #1a73e8; }
+.code-textarea.correct { border-color: #0d904f; background: #e6f4ec; }
+.code-textarea.wrong { border-color: #d93025; background: #fce8e6; }
+.code-textarea.disabled { pointer-events: none; background: #f5f5f5; }
 .btn { padding: 10px 24px; border: none; border-radius: 6px; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; }
 .btn-blue { background: #1a73e8; color: #fff; }
 .btn-blue:hover { background: #1557b0; }
@@ -211,7 +216,7 @@ let treeAssignments = {}; // {qIndex: {slotId: value}}
 let treeChecked = {};     // {qIndex: {slotId: bool}}
 let selectedSlot = {};    // {qIndex: slotId | null}
 
-function isGradable(q) { return q.type === 'single' || q.type === 'fill' || q.type === 'drawing'; }
+function isGradable(q) { return q.type === 'single' || q.type === 'fill' || q.type === 'drawing' || q.type === 'code'; }
 function getErrorSet() {
   let s = new Set();
   for (let i = 0; i < questions.length; i++) {
@@ -250,6 +255,20 @@ function submitFill(qIndex) {
   updateErrorBadge(); render();
 }
 function handleFillKeydown(qIndex, e) { if (e.key==='Enter') submitFill(qIndex); }
+
+function submitCode(qIndex) {
+  if (answered[qIndex] !== undefined) return;
+  const textarea = document.getElementById('codeTextarea');
+  if (!textarea) return;
+  const userCode = textarea.value;
+  userAnswers[qIndex] = userCode;
+  const ref = questions[qIndex].code;
+  // Normalize: strip whitespace, comments, lowercase
+  const norm = s => s.replace(/\/\/.*$/gm,'').replace(/\/\*[\s\S]*?\*\//g,'').replace(/\s+/g,'').toLowerCase();
+  const isMatch = norm(userCode) === norm(ref);
+  answered[qIndex] = isMatch;
+  updateErrorBadge(); render();
+}
 
 // ============ TREE STATE ============
 function initTreeState(qIndex) {
@@ -524,8 +543,14 @@ function render() {
 
   // --- Code ---
   else if (q.type === 'code') {
-    h += `<p style="color:#888;font-size:0.9rem;margin-bottom:8px;">💻 本题为编程题，请先自己编写，再点击查看参考代码。</p>`;
-    if (!isAnswered) h += `<button class="btn btn-orange" onclick="answered[${qIndex}]=true;render();">📖 显示参考代码</button>`;
+    h += `<p style="color:#888;font-size:0.9rem;margin-bottom:8px;">💻 请在下方编写代码，然后点击"提交检查"。</p>`;
+    const dis = isAnswered ? 'disabled' : '';
+    const cls = isAnswered ? (isCorrect ? 'correct' : 'wrong') : '';
+    const userCode = userAnswers[qIndex] || '';
+    h += `<textarea id="codeTextarea" class="code-textarea ${cls} ${dis}" placeholder="请在此编写你的代码..." ${dis}>${escapeHtml(userCode)}</textarea>`;
+    if (!isAnswered) {
+      h += `<button class="btn btn-orange" style="margin-top:10px" onclick="submitCode(${qIndex})">📝 提交检查</button>`;
+    }
   }
 
   // --- Answer reveal: single/fill ---
@@ -550,10 +575,14 @@ function render() {
 
   // --- Answer reveal: code ---
   if (isAnswered && q.type === 'code' && q.code) {
-    h += `<div class="answer-reveal show info-ans">
-      <strong>💻 参考代码：</strong><div class="code-block">${escapeHtml(q.code)}</div>
+    const cls = isCorrect ? 'correct-ans' : 'wrong-ans';
+    const icon = isCorrect ? '✅' : '❌';
+    h += `<div class="answer-reveal show ${cls}">
+      ${icon} <strong>${isCorrect?'代码正确！':'代码有差异'}</strong>
+      <div style="margin-top:8px"><strong>💻 参考代码：</strong></div>
+      <div class="code-block">${escapeHtml(q.code)}</div>
       ${q.explain?`<span style="font-size:0.85rem;">📖 ${q.explain}</span>`:''}
-      <br><button class="btn btn-outline" style="margin-top:8px;font-size:0.8rem;padding:6px 16px;" onclick="redoQuestion(${qIndex})">🔄 隐藏答案</button>
+      <br><button class="btn btn-outline" style="margin-top:8px;font-size:0.8rem;padding:6px 16px;" onclick="redoQuestion(${qIndex})">🔄 重做本题</button>
     </div>`;
   }
 
